@@ -13,11 +13,11 @@ import dev.tarcisio.minebox.services.RefreshTokenService;
 
 import dev.tarcisio.minebox.services.UserService;
 
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -39,18 +39,18 @@ public class AuthController {
 
     @PostMapping("/signin")
     public ResponseEntity<?>
-    authenticateUser(@Validated @RequestBody LoginRequest loginRequest) {
+    authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
         try {
             JwtResponse authenticate = authService.authenticate(loginRequest);
             return ResponseEntity.ok(authenticate);
         } catch (BadCredentialsException e) {
-            return ResponseEntity.status(403).body(e.getMessage());
+            return ResponseEntity.status(400).body(e.getMessage());
         }
     }
 
     @PostMapping("/signup")
     public ResponseEntity<?>
-    registerUser(@Validated @RequestBody SignupRequest signupRequest) {
+    registerUser(@Valid @RequestBody SignupRequest signupRequest) {
         try {
             userService.createUser(signupRequest);
             return ResponseEntity.ok(new MessageResponse("User registered successfully"));
@@ -60,14 +60,14 @@ public class AuthController {
     }
 
     @PostMapping("/refreshtoken")
-    public ResponseEntity<?> refreshtoken(@Validated @RequestBody TokenRefreshRequest request) {
+    public ResponseEntity<?> refreshtoken(@Valid @RequestBody TokenRefreshRequest request) {
         String requestRefreshToken = request.getRefreshToken();
 
         try {
             TokenRefreshResponse tokenRefreshResponse = refreshTokenService.refreshToken(requestRefreshToken);
             return ResponseEntity.ok(tokenRefreshResponse);
         } catch (TokenRefreshException e) {
-            return ResponseEntity.status(403).body(new MessageResponse("Error: Token is not in the database!"));
+            return ResponseEntity.status(400).body(new MessageResponse("Error: Token is not in the database!"));
         }
     }
 }
