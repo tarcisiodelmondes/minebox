@@ -83,7 +83,7 @@ public class AuthController {
       return ResponseEntity.status(201).body(new MessageResponse("User registered successfully"));
     } catch (EmailAreadyExistsException e) {
       return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-          .body(new MessageResponse("Error: Email is already in use"));
+          .body(new MessageResponse("Error: Email is already in use!"));
     }
   }
 
