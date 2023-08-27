@@ -48,7 +48,6 @@ public class RefreshTokenService {
 
         refreshTokenRepository.flush();
 
-
         refreshToken.setUser(user);
         refreshToken.setToken(UUID.randomUUID().toString());
         refreshToken.setExpiryDate(
@@ -81,7 +80,7 @@ public class RefreshTokenService {
         var refreshTokenData = isRefreshTokenExists.get();
         verifyExpiration(refreshTokenData);
 
-        String newToken = jwtUtils.generateTokenFromUsername(refreshTokenData.getUser().getEmail());
+        String newToken = jwtUtils.generateTokenFromUsername(refreshTokenData.getUser().getId());
         return new TokenRefreshResponse(newToken, refreshToken);
     }
 

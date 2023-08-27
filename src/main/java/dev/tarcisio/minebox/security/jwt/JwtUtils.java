@@ -32,7 +32,7 @@ public class JwtUtils {
     }
 
     public String generateJwtToken(UserDetailsImpl userPrincipal) {
-        return generateTokenFromUsername(userPrincipal.getUsername());
+        return generateTokenFromUsername(userPrincipal.getId());
     }
 
     public String generateTokenFromUsername(String username) {
