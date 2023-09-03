@@ -22,7 +22,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest
+@SporingBootTest
 @AutoConfigureMockMvc
 public class AuthControllerTest {
   @Autowired private MockMvc mockMvc;

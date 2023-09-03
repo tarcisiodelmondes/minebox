@@ -23,12 +23,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 
 @ExtendWith(MockitoExtension.class)
 @ExtendWith(SpringExtension.class)
+@SpringJUnitConfig(RefreshTokenServiceTest.class)
 @TestPropertySource(locations = "classpath:application-test.properties")
 public class RefreshTokenServiceTest {
-
   @Mock private RefreshTokenRepository refreshTokenRepository;
 
   @Mock private UserRepository userRepository;
@@ -133,7 +134,7 @@ public class RefreshTokenServiceTest {
         .thenReturn(Optional.of(refreshToken));
     Mockito
         .when(jwtUtils.generateTokenFromUsername(
-            refreshToken.getUser().getEmail()))
+            refreshToken.getUser().getId()))
         .thenReturn("TOKEN");
 
     var result = refreshTokenService.refreshToken(refreshToken.getToken());

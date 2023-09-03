@@ -46,8 +46,8 @@ public class AuthController {
   private RefreshTokenService refreshTokenService;
 
   @Operation(summary = "Rota de login do usuario",
-      description = "Recebe o email e password pelo body. A resposta é um objeto JwtResponse que contem o token, refreshtoken, id, name, email e tokenType",
-      tags = {"authenticação", "post"})
+      description = "Recebe o email e password pelo body. A resposta é um objeto JwtResponse que contem o token, refreshtoken, id, name, email e tokenType"
+      )
   @ApiResponses({
       @ApiResponse(responseCode = "200",
           content = {@Content(schema = @Schema(implementation = JwtResponse.class),
@@ -69,8 +69,8 @@ public class AuthController {
   }
 
   @Operation(summary = "Rota de criação de usuario",
-      description = "Recebe name, email e password pelo body. A resposta é um texto puro",
-      tags = {"criar", "post", "usuario"})
+      description = "Recebe name, email e password pelo body. A resposta é um texto puro"
+      )
   @ApiResponses({@ApiResponse(responseCode = "201", content = {@Content(mediaType = "text/plain")}),
       @ApiResponse(responseCode = "400",
           description = "Email já esta em uso \t\n name, email ou password mal formatado/nulo (ArgumentValidateMessage)",
@@ -88,8 +88,8 @@ public class AuthController {
   }
 
   @Operation(summary = "Rota que cria um novo token baseado no refresh token",
-      description = "Recebe um refresh token pelo body. A resposta é um objeto TokenRefreshResponse que contém: token, refreshtoken e tokenType",
-      tags = {"refresh token", "post"})
+      description = "Recebe um refresh token pelo body. A resposta é um objeto TokenRefreshResponse que contém: token, refreshtoken e tokenType"
+      )
   @ApiResponses({
       @ApiResponse(responseCode = "200",
           content = {@Content(schema = @Schema(implementation = TokenRefreshResponse.class),
