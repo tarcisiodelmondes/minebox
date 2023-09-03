@@ -22,28 +22,32 @@ import org.springframework.http.MediaType;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.test.web.servlet.MockMvc;
 
-@SporingBootTest
+@SpringBootTest
 @AutoConfigureMockMvc
 public class AuthControllerTest {
-  @Autowired private MockMvc mockMvc;
+  @Autowired
+  private MockMvc mockMvc;
 
-  @MockBean private AuthService authService;
+  @MockBean
+  private AuthService authService;
 
-  @MockBean private UserService userService;
+  @MockBean
+  private UserService userService;
 
-  @MockBean private RefreshTokenService refreshTokenService;
+  @MockBean
+  private RefreshTokenService refreshTokenService;
 
-  @Autowired private ObjectMapper objectMapper;
+  @Autowired
+  private ObjectMapper objectMapper;
 
   @Test
   public void testRegisterUserShouldReturn201() throws Exception {
-    String requestBody =
-        "{ \"name\": \"Fulano 01\", \"email\": \"fulano@email.com\", \"password\": \"12345678\"}";
+    String requestBody = "{ \"name\": \"Fulano 01\", \"email\": \"fulano@email.com\", \"password\": \"12345678\"}";
 
     mockMvc
         .perform(post("/api/auth/signup")
-                     .contentType(MediaType.APPLICATION_JSON)
-                     .content(requestBody))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(requestBody))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.message").value("User registered successfully"));
   }
@@ -52,13 +56,12 @@ public class AuthControllerTest {
   public void testRegisterUserShouldReturn400BadRequest() throws Exception {
     // O "password" deve ser maior ou ingual a 8 caracteres, por isso esse teste
     // deve retornar 400
-    String requestBody =
-        "{ \"name\": \"Fulano 01\", \"email\": \"fulano@email.com\", \"password\": \"1234567\"}";
+    String requestBody = "{ \"name\": \"Fulano 01\", \"email\": \"fulano@email.com\", \"password\": \"1234567\"}";
 
     mockMvc
         .perform(post("/api/auth/signup")
-                     .contentType(MediaType.APPLICATION_JSON)
-                     .content(requestBody))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(requestBody))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.message").isArray());
   }
@@ -66,8 +69,7 @@ public class AuthControllerTest {
   @Test
   public void testRegisterUserShouldReturn400EmailAlreadyExists()
       throws Exception {
-    String requestBody =
-        "{ \"name\": \"Fulano 01\", \"email\": \"fulano@email.com\", \"password\": \"12345678\"}";
+    String requestBody = "{ \"name\": \"Fulano 01\", \"email\": \"fulano@email.com\", \"password\": \"12345678\"}";
 
     Mockito
         .doThrow(
@@ -77,8 +79,8 @@ public class AuthControllerTest {
 
     mockMvc
         .perform(post("/api/auth/signup")
-                     .contentType(MediaType.APPLICATION_JSON)
-                     .content(requestBody))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(requestBody))
         .andExpect(status().isBadRequest())
         .andExpect(
             jsonPath("$.message").value("Error: Email is already in use!"));
@@ -91,15 +93,15 @@ public class AuthControllerTest {
     loginRequest.setPassword("12345678");
 
     JwtResponse jwtResponse = new JwtResponse("token", "refreshtoken", "1",
-                                              "Fulano 01", "fulano@email.com");
+        "Fulano 01", "fulano@email.com");
 
     Mockito.when(authService.authenticate(Mockito.any()))
         .thenReturn(jwtResponse);
 
     mockMvc
         .perform(post("/api/auth/signin")
-                     .contentType(MediaType.APPLICATION_JSON)
-                     .content(objectMapper.writeValueAsString(loginRequest)))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(loginRequest)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.token").value("token"))
         .andExpect(jsonPath("$.refreshToken").value("refreshtoken"))
@@ -121,8 +123,8 @@ public class AuthControllerTest {
 
     mockMvc
         .perform(post("/api/auth/signin")
-                     .contentType(MediaType.APPLICATION_JSON)
-                     .content(objectMapper.writeValueAsString(loginRequest)))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(loginRequest)))
         .andExpect(status().isBadRequest())
         .andExpect(content().string("Bad credentials"));
   }
@@ -138,8 +140,8 @@ public class AuthControllerTest {
 
     mockMvc
         .perform(post("/api/auth/refreshtoken")
-                     .contentType(MediaType.APPLICATION_JSON)
-                     .content(refreshtoken))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(refreshtoken))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.token").isString());
   }
@@ -155,8 +157,8 @@ public class AuthControllerTest {
 
     mockMvc
         .perform(post("/api/auth/refreshtoken")
-                     .contentType(MediaType.APPLICATION_JSON)
-                     .content(refreshtoken))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(refreshtoken))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.message").isString());
   }
