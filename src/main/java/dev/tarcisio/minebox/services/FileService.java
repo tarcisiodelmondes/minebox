@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,7 +17,10 @@ import org.springframework.web.multipart.MultipartFile;
 import dev.tarcisio.minebox.entities.File;
 import dev.tarcisio.minebox.entities.User;
 import dev.tarcisio.minebox.exception.FileEmptyException;
+import dev.tarcisio.minebox.exception.FileNotFoundException;
 import dev.tarcisio.minebox.exception.FileUploadException;
+import dev.tarcisio.minebox.exception.S3Exception;
+import dev.tarcisio.minebox.payload.response.FileDownloadResponse;
 import dev.tarcisio.minebox.payload.response.FileListResponse;
 import dev.tarcisio.minebox.payload.response.FileUploadResponse;
 import dev.tarcisio.minebox.repositories.FileRepository;
@@ -96,6 +100,23 @@ public class FileService {
         .toList();
 
     return filesOfUser;
+  }
+
+  public FileDownloadResponse download(String fileId) throws S3Exception, FileNotFoundException {
+    Optional<File> file = fileRepository.findById(fileId);
+
+    if (!file.isPresent()) {
+      throw new FileNotFoundException("Error: arquivo não encontrado!");
+    }
+
+    File fileObject = file.get();
+
+    byte[] fileBytes = s3Utils.getFileBytes(fileObject.getS3FileKey());
+
+    FileDownloadResponse fileDownloadResponse = new FileDownloadResponse(fileBytes, fileObject.getContentType(),
+        fileObject.getSize());
+    return fileDownloadResponse;
+
   }
 
 }

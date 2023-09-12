@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,6 +24,8 @@ import org.springframework.web.multipart.MultipartFile;
 import dev.tarcisio.minebox.entities.File;
 import dev.tarcisio.minebox.entities.User;
 import dev.tarcisio.minebox.exception.FileEmptyException;
+import dev.tarcisio.minebox.exception.FileNotFoundException;
+import dev.tarcisio.minebox.payload.response.FileDownloadResponse;
 import dev.tarcisio.minebox.payload.response.FileUploadResponse;
 import dev.tarcisio.minebox.repositories.FileRepository;
 import dev.tarcisio.minebox.utils.S3Utils;
@@ -30,6 +33,7 @@ import jakarta.persistence.EntityManager;
 
 @ExtendWith(MockitoExtension.class)
 public class FileServiceTest {
+
   @Mock
   private FileRepository fileRepository;
 
@@ -81,6 +85,30 @@ public class FileServiceTest {
 
     assertThrows(FileEmptyException.class, () -> fileService.upload(fileList));
 
+  }
+
+  @Test
+  public void whenDownloadShouldReturnFileDownloadResponse() throws Exception {
+    User user = new User("Fulano", "test@email.com", "12345678");
+    File file = new File("id", "file_name", 10L, "image/png", "s3_file_key", user);
+
+    Mockito.doReturn(Optional.of(file)).when(fileRepository).findById("id");
+
+    byte[] fileBytes = new byte[1234];
+    Mockito.when(s3Utils.getFileBytes("s3_file_key")).thenReturn(fileBytes);
+
+    FileDownloadResponse result = fileService.download(file.getId());
+
+    assertEquals(FileDownloadResponse.class, result.getClass());
+    assertEquals(fileBytes, result.getFilebytes());
+    assertEquals(file.getSize(), result.getSize());
+    assertEquals(file.getContentType(), result.getContentType());
+
+  }
+
+  @Test
+  public void whenDownloadShouldReturnFileNotFoundException() throws Exception {
+    assertThrows(FileNotFoundException.class, () -> fileService.download(Mockito.anyString()));
   }
 
 }

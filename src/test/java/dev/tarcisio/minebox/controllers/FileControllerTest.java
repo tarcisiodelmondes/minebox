@@ -1,7 +1,7 @@
 package dev.tarcisio.minebox.controllers;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -22,9 +22,13 @@ import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequ
 import org.springframework.test.web.servlet.MockMvc;
 
 import dev.tarcisio.minebox.exception.FileEmptyException;
+import dev.tarcisio.minebox.exception.FileNotFoundException;
 import dev.tarcisio.minebox.exception.FileUploadException;
+import dev.tarcisio.minebox.exception.S3Exception;
+import dev.tarcisio.minebox.payload.response.FileDownloadResponse;
 import dev.tarcisio.minebox.payload.response.FileListResponse;
 import dev.tarcisio.minebox.payload.response.FileUploadResponse;
+import dev.tarcisio.minebox.repositories.FileRepository;
 import dev.tarcisio.minebox.services.FileService;
 
 @SpringBootTest
@@ -35,6 +39,9 @@ public class FileControllerTest {
 
   @MockBean
   private FileService fileService;
+
+  @MockBean
+  private FileRepository fileRepository;
 
   @Test
   public void testUploadShould201WithListOfFileUploadResponse() throws IOException, FileUploadException, Exception {
@@ -111,6 +118,43 @@ public class FileControllerTest {
                 .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isOk()).andExpect(jsonPath("$").isArray())
         .andExpect(jsonPath("$").value(new ArrayList<>()));
+  }
+
+  @Test
+  public void testDownloadShould200WithFileBytes() throws Exception {
+    byte[] fileBytes = new byte[1234];
+
+    FileDownloadResponse fileDownloadResponse = new FileDownloadResponse(fileBytes, "image/png", 10L);
+    Mockito.when(fileService.download("file_id")).thenReturn(fileDownloadResponse);
+
+    mockMvc
+        .perform(
+            get("/api/file/download/file_id").with(SecurityMockMvcRequestPostProcessors.user("test@email.com"))
+                .contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isOk()).andExpect(content().bytes(fileBytes));
+  }
+
+  @Test
+  public void testDownloadShould400WithS3ExceptionMessage() throws Exception {
+
+    Mockito.when(fileService.download("file_id")).thenThrow(new S3Exception("Error: falha ao baixar arquivo!"));
+    mockMvc
+        .perform(
+            get("/api/file/download/file_id").with(SecurityMockMvcRequestPostProcessors.user("test@email.com"))
+                .contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isBadRequest()).andExpect(content().string("Error: falha ao baixar arquivo!"));
+  }
+
+  @Test
+  public void testDownloadShould404WithFileNotFoundExceptionMessage() throws Exception {
+
+    Mockito.when(fileService.download("file_id"))
+        .thenThrow(new FileNotFoundException("Error: arquivo não encontrado!"));
+    mockMvc
+        .perform(
+            get("/api/file/download/file_id").with(SecurityMockMvcRequestPostProcessors.user("test@email.com"))
+                .contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isNotFound()).andExpect(content().string("Error: arquivo não encontrado!"));
   }
 
 }
