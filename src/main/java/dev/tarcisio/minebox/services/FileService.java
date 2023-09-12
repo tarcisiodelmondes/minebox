@@ -17,6 +17,7 @@ import dev.tarcisio.minebox.entities.File;
 import dev.tarcisio.minebox.entities.User;
 import dev.tarcisio.minebox.exception.FileEmptyException;
 import dev.tarcisio.minebox.exception.FileUploadException;
+import dev.tarcisio.minebox.payload.response.FileListResponse;
 import dev.tarcisio.minebox.payload.response.FileUploadResponse;
 import dev.tarcisio.minebox.repositories.FileRepository;
 import dev.tarcisio.minebox.utils.S3Utils;
@@ -54,7 +55,8 @@ public class FileService {
       byte[] fileBytes = file.getBytes();
       InputStream fileInputStream = new ByteArrayInputStream(fileBytes);
 
-      String s3FileKey = generateS3FileKey();
+      String s3FileKey = UUID.randomUUID().toString();
+      ;
 
       // Upload file in S3
       String s3_url = s3Utils.upload(fileBytes, fileInputStream, s3FileKey);
@@ -78,8 +80,22 @@ public class FileService {
     return filesUploaded;
   }
 
-  public String generateS3FileKey() {
-    return UUID.randomUUID().toString();
+  public List<FileListResponse> list() {
+    // Pegar o id do usuario logogado
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    UserDetailsImpl principal = (UserDetailsImpl) authentication.getPrincipal();
+
+    // Pega todos os arquvios do usuario
+    List<FileListResponse> filesOfUser = fileRepository.findAllByUserId(principal.getUsername()).stream()
+        .map(file -> {
+          // Gera as urls pre assinada para cada arquivo
+          String s3Url = s3Utils.generateUrlPreAssinada(file.getS3FileKey());
+
+          return new FileListResponse(s3Url, file.getId(), file.getName(), file.getSize(), file.getContentType());
+        })
+        .toList();
+
+    return filesOfUser;
   }
 
 }

@@ -1,6 +1,7 @@
 package dev.tarcisio.minebox.controllers;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -22,6 +23,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import dev.tarcisio.minebox.exception.FileEmptyException;
 import dev.tarcisio.minebox.exception.FileUploadException;
+import dev.tarcisio.minebox.payload.response.FileListResponse;
 import dev.tarcisio.minebox.payload.response.FileUploadResponse;
 import dev.tarcisio.minebox.services.FileService;
 
@@ -84,6 +86,31 @@ public class FileControllerTest {
                 .contentType(MediaType.MULTIPART_FORM_DATA))
         .andExpect(status().isBadRequest()).andExpect(content().string("Error ao enviar arquivo!"));
 
+  }
+
+  @Test
+  public void testListShould200WithFileListResponse() throws Exception {
+    FileListResponse fileListResponse = new FileListResponse("s3_url", "id", "nome do arquivo", 2333L, "image/png");
+    Mockito.when(fileService.list()).thenReturn(List.of(fileListResponse));
+
+    mockMvc
+        .perform(
+            get("/api/file/list").with(SecurityMockMvcRequestPostProcessors.user("test@email.com"))
+                .contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isOk()).andExpect(jsonPath("$").isArray())
+        .andExpect(jsonPath("$[0].name").value("nome do arquivo"));
+  }
+
+  @Test
+  public void testListShould200WithArrayEmpty() throws Exception {
+    Mockito.when(fileService.list()).thenReturn(new ArrayList<>());
+
+    mockMvc
+        .perform(
+            get("/api/file/list").with(SecurityMockMvcRequestPostProcessors.user("test@email.com"))
+                .contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isOk()).andExpect(jsonPath("$").isArray())
+        .andExpect(jsonPath("$").value(new ArrayList<>()));
   }
 
 }

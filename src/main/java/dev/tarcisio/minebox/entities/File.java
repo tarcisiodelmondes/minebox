@@ -1,5 +1,7 @@
 package dev.tarcisio.minebox.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -75,6 +77,7 @@ public class File extends FileAuditable {
     this.name = name;
   }
 
+  @JsonIgnore
   public String getS3FileKey() {
     return s3FileKey;
   }
@@ -95,6 +98,7 @@ public class File extends FileAuditable {
     return contentType;
   }
 
+  @JsonIgnore
   public User getUser() {
     return user;
   }
