@@ -3,6 +3,7 @@ package dev.tarcisio.minebox.controllers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -44,4 +45,23 @@ public class UserController {
       return ResponseEntity.status(404).build();
     }
   }
+
+  @Operation(summary = "Rota de delete de usuario por id", description = "Recebe o id pelo path param. Deleta o usuario, seus arquivos e token de acesso")
+  @ApiResponses({
+      @ApiResponse(responseCode = "204", content = {
+          @Content(schema = @Schema(implementation = Void.class), mediaType = "application/json") }),
+      @ApiResponse(responseCode = "404", description = "Usuario não encontrado", content = {
+          @Content(schema = @Schema(implementation = UserNotFoundException.class), mediaType = "application/json") })
+  })
+  @DeleteMapping(value = "/{id}")
+  public ResponseEntity<?> deleteById(@PathVariable String id) throws UserNotFoundException {
+    try {
+      userService.delete(id);
+
+      return ResponseEntity.status(204).build();
+    } catch (UserNotFoundException e) {
+      return ResponseEntity.status(404).body(e.getMessage());
+    }
+  }
+
 }

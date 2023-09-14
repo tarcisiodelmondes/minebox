@@ -11,6 +11,7 @@ import dev.tarcisio.minebox.exception.FileUploadException;
 import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
@@ -89,5 +90,11 @@ public class S3Utils {
       throw new S3Exception("Error: falha ao baixar arquivo");
     }
 
+  }
+
+  public void deleteFile(String s3FileKey) {
+    DeleteObjectRequest deleteObjectRequest = DeleteObjectRequest.builder().bucket(bucketName).key(s3FileKey).build();
+
+    s3Client.deleteObject(deleteObjectRequest);
   }
 }
