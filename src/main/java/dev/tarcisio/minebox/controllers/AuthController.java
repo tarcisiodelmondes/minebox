@@ -1,6 +1,6 @@
 package dev.tarcisio.minebox.controllers;
 
-import dev.tarcisio.minebox.exception.EmailAreadyExistsException;
+import dev.tarcisio.minebox.exception.EmailAlreadyExistsException;
 import dev.tarcisio.minebox.exception.TokenRefreshException;
 import dev.tarcisio.minebox.payload.request.LoginRequest;
 import dev.tarcisio.minebox.payload.request.SignupRequest;
@@ -45,19 +45,14 @@ public class AuthController {
   @Autowired
   private RefreshTokenService refreshTokenService;
 
-  @Operation(summary = "Rota de login do usuario",
-      description = "Recebe o email e password pelo body. A resposta é um objeto JwtResponse que contem o token, refreshtoken, id, name, email e tokenType"
-      )
+  @Operation(summary = "Rota de login do usuario", description = "Recebe o email e password pelo body. A resposta é um objeto JwtResponse que contem o token, refreshtoken, id, name, email e tokenType")
   @ApiResponses({
-      @ApiResponse(responseCode = "200",
-          content = {@Content(schema = @Schema(implementation = JwtResponse.class),
-              mediaType = "application/json")}),
-      @ApiResponse(responseCode = "400", description = "Credenciais incorretas",
-          content = {@Content(mediaType = "text/plain")}),
-      @ApiResponse(responseCode = "400",
-          description = "Email ou Password mal formatado/nulo \t\n Credenciais incorretas (body=text/plain)",
-          content = {@Content(schema = @Schema(implementation = ArgumentValidateMessage.class),
-              mediaType = "application/json")})})
+      @ApiResponse(responseCode = "200", content = {
+          @Content(schema = @Schema(implementation = JwtResponse.class), mediaType = "application/json") }),
+      @ApiResponse(responseCode = "400", description = "Credenciais incorretas", content = {
+          @Content(mediaType = "text/plain") }),
+      @ApiResponse(responseCode = "400", description = "Email ou Password mal formatado/nulo \t\n Credenciais incorretas (body=text/plain)", content = {
+          @Content(schema = @Schema(implementation = ArgumentValidateMessage.class), mediaType = "application/json") }) })
   @PostMapping("/signin")
   public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
     try {
@@ -68,43 +63,33 @@ public class AuthController {
     }
   }
 
-  @Operation(summary = "Rota de criação de usuario",
-      description = "Recebe name, email e password pelo body. A resposta é um texto puro"
-      )
-  @ApiResponses({@ApiResponse(responseCode = "201", content = {@Content(mediaType = "text/plain")}),
-      @ApiResponse(responseCode = "400",
-          description = "Email já esta em uso \t\n name, email ou password mal formatado/nulo (ArgumentValidateMessage)",
-          content = {@Content(schema = @Schema(implementation = MessageResponse.class),
-              mediaType = "application/json")})})
+  @Operation(summary = "Rota de criação de usuario", description = "Recebe name, email e password pelo body. A resposta é um texto puro")
+  @ApiResponses({ @ApiResponse(responseCode = "201", content = { @Content(mediaType = "text/plain") }),
+      @ApiResponse(responseCode = "400", description = "Email já esta em uso \t\n name, email ou password mal formatado/nulo (ArgumentValidateMessage)", content = {
+          @Content(schema = @Schema(implementation = MessageResponse.class), mediaType = "application/json") }) })
   @PostMapping("/signup")
   public ResponseEntity<?> registerUser(@Valid @RequestBody SignupRequest signupRequest) {
     try {
       userService.createUser(signupRequest);
       return ResponseEntity.status(201).body(new MessageResponse("User registered successfully"));
-    } catch (EmailAreadyExistsException e) {
+    } catch (EmailAlreadyExistsException e) {
       return ResponseEntity.status(HttpStatus.BAD_REQUEST)
           .body(new MessageResponse("Error: Email is already in use!"));
     }
   }
 
-  @Operation(summary = "Rota que cria um novo token baseado no refresh token",
-      description = "Recebe um refresh token pelo body. A resposta é um objeto TokenRefreshResponse que contém: token, refreshtoken e tokenType"
-      )
+  @Operation(summary = "Rota que cria um novo token baseado no refresh token", description = "Recebe um refresh token pelo body. A resposta é um objeto TokenRefreshResponse que contém: token, refreshtoken e tokenType")
   @ApiResponses({
-      @ApiResponse(responseCode = "200",
-          content = {@Content(schema = @Schema(implementation = TokenRefreshResponse.class),
-              mediaType = "application/json")}),
-      @ApiResponse(responseCode = "400",
-          description = "Refresh token não existe no banco de dados \t\n refreshtoken mal formatado/nulo (ArgumentValidateMessage)",
-          content = {@Content(schema = @Schema(implementation = MessageResponse.class),
-              mediaType = "application/json")})})
+      @ApiResponse(responseCode = "200", content = {
+          @Content(schema = @Schema(implementation = TokenRefreshResponse.class), mediaType = "application/json") }),
+      @ApiResponse(responseCode = "400", description = "Refresh token não existe no banco de dados \t\n refreshtoken mal formatado/nulo (ArgumentValidateMessage)", content = {
+          @Content(schema = @Schema(implementation = MessageResponse.class), mediaType = "application/json") }) })
   @PostMapping("/refreshtoken")
   public ResponseEntity<?> refreshtoken(@Valid @RequestBody TokenRefreshRequest request) {
     String requestRefreshToken = request.getRefreshToken();
 
     try {
-      TokenRefreshResponse tokenRefreshResponse =
-          refreshTokenService.refreshToken(requestRefreshToken);
+      TokenRefreshResponse tokenRefreshResponse = refreshTokenService.refreshToken(requestRefreshToken);
       return ResponseEntity.ok(tokenRefreshResponse);
     } catch (TokenRefreshException e) {
       return ResponseEntity.status(400)

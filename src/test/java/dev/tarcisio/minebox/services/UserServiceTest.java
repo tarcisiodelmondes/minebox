@@ -5,23 +5,29 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import dev.tarcisio.minebox.entities.File;
 import dev.tarcisio.minebox.entities.User;
-import dev.tarcisio.minebox.exception.EmailAreadyExistsException;
+import dev.tarcisio.minebox.exception.EmailAlreadyExistsException;
 import dev.tarcisio.minebox.exception.UserNotFoundException;
 import dev.tarcisio.minebox.payload.request.SignupRequest;
+import dev.tarcisio.minebox.payload.request.UpdateUserRequest;
 import dev.tarcisio.minebox.payload.response.UserResponse;
 import dev.tarcisio.minebox.repositories.FileRepository;
 import dev.tarcisio.minebox.repositories.UserRepository;
 import dev.tarcisio.minebox.utils.S3Utils;
+import jakarta.persistence.EntityManager;
 
 import java.util.Arrays;
 import java.util.Optional;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @ExtendWith(MockitoExtension.class)
@@ -41,8 +47,20 @@ public class UserServiceTest {
   @Mock
   private RefreshTokenService refreshTokenService;
 
+  @Mock
+  private EntityManager entityManager;
+
   @InjectMocks
   private UserService userService;
+
+  @BeforeEach
+  public void setUp() {
+    // Configure o contexto de segurança para simular um usuário autenticado
+    Authentication authentication = new UsernamePasswordAuthenticationToken(
+        new UserDetailsImpl("id", "Fulano", "test@email.com", "12345678"), null);
+
+    SecurityContextHolder.getContext().setAuthentication(authentication);
+  }
 
   @Test
   public void whenSaveUserShouldReturnVoid() {
@@ -74,7 +92,7 @@ public class UserServiceTest {
     Mockito.when(userRepository.findByEmail("test@email.com"))
         .thenReturn(Optional.of(existingUser));
 
-    Assertions.assertThrows(EmailAreadyExistsException.class,
+    Assertions.assertThrows(EmailAlreadyExistsException.class,
         () -> userService.createUser(newUser));
   }
 
@@ -125,5 +143,76 @@ public class UserServiceTest {
     Mockito.when(userRepository.existsById(userId)).thenReturn(false);
 
     assertThrows(UserNotFoundException.class, () -> userService.delete(userId));
+  }
+
+  @Test
+  public void whenUpdateShouldReturnUserResponse() {
+    // Testa o update com um nome e email novo
+    User user = new User("Fulano", "fulano@email.com", "12345678");
+
+    Mockito.when(userRepository.findById(Mockito.any())).thenReturn(Optional.of(user));
+
+    UpdateUserRequest updateUserRequest = new UpdateUserRequest();
+    updateUserRequest.setName("Novo Fulano");
+    updateUserRequest.setEmail("novo@email.com");
+
+    Mockito.when(userRepository.existsByEmail(Mockito.any())).thenReturn(false);
+    Mockito.when(userRepository.save(Mockito.any(User.class))).thenReturn(user);
+
+    UserResponse result = userService.update(updateUserRequest);
+
+    assertEquals("Novo Fulano", result.getName());
+    assertEquals("novo@email.com", result.getEmail());
+
+    // Testa o update apenas com um nome novo
+    UpdateUserRequest updateUserRequest2 = new UpdateUserRequest();
+    updateUserRequest2.setName("Novo Fulano 2");
+
+    UserResponse result2 = userService.update(updateUserRequest2);
+    assertEquals("Novo Fulano 2", result2.getName());
+    assertEquals("novo@email.com", result2.getEmail());
+
+    // Testa o update apenas com um email novo
+    UpdateUserRequest updateUserRequest3 = new UpdateUserRequest();
+    updateUserRequest3.setEmail("novo3@email.com");
+
+    UserResponse result3 = userService.update(updateUserRequest3);
+    assertEquals("Novo Fulano 2", result3.getName());
+    assertEquals("novo3@email.com", result3.getEmail());
+
+    // Testa o update com nome e email nulo
+    UpdateUserRequest updateUserRequest4 = new UpdateUserRequest();
+
+    UserResponse result4 = userService.update(updateUserRequest4);
+    assertEquals("Novo Fulano 2", result4.getName());
+    assertEquals("novo3@email.com", result3.getEmail());
+
+  }
+
+  @Test
+  public void whenUpdateShouldThrowUserNotFoundException() {
+    Mockito.when(userRepository.findById(Mockito.any())).thenReturn(Optional.ofNullable(null));
+
+    UpdateUserRequest updateUserRequest = new UpdateUserRequest();
+    updateUserRequest.setName("Novo Fulano");
+    updateUserRequest.setEmail("novo@email.com");
+
+    assertThrows(UserNotFoundException.class, () -> userService.update(updateUserRequest));
+  }
+
+  @Test
+  public void whenUpdateShouldThrowEmailAlreadyExistsException() {
+    User user = new User("Fulano", "fulano@email.com", "12345678");
+
+    Mockito.when(userRepository.findById(Mockito.any())).thenReturn(Optional.of(user));
+    Mockito.when(userRepository.existsByEmail(Mockito.any())).thenReturn(true);
+
+    UpdateUserRequest updateUserRequest = new UpdateUserRequest();
+    updateUserRequest.setName("Novo Fulano");
+    updateUserRequest.setEmail("novo@email.com");
+
+    assertThrows(EmailAlreadyExistsException.class,
+        () -> userService.update(updateUserRequest));
+
   }
 }
