@@ -72,20 +72,20 @@ public class UserControllerTest {
 
   @Test
   public void testDeleteByIdShouldReturn204WithoutBody() throws Exception {
-    Mockito.doNothing().when(userService).delete("user_id");
+    Mockito.doNothing().when(userService).delete();
 
     mockMvc
-        .perform(delete("/api/user/user_id").with(SecurityMockMvcRequestPostProcessors.user("test@email.com"))
+        .perform(delete("/api/user/delete").with(SecurityMockMvcRequestPostProcessors.user("test@email.com"))
             .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isNoContent()).andExpect(content().string(""));
   }
 
   @Test
   public void testDeleteByIdShouldReturn404() throws Exception {
-    Mockito.doThrow(new UserNotFoundException("Error: o usuario não existe!")).when(userService).delete("user_id");
+    Mockito.doThrow(new UserNotFoundException("Error: o usuario não existe!")).when(userService).delete();
 
     mockMvc
-        .perform(delete("/api/user/user_id").with(SecurityMockMvcRequestPostProcessors.user("test@email.com"))
+        .perform(delete("/api/user/delete").with(SecurityMockMvcRequestPostProcessors.user("test@email.com"))
             .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isNotFound()).andExpect(content().string("Error: o usuario não existe!"));
   }

@@ -123,26 +123,22 @@ public class UserServiceTest {
 
   @Test
   public void whenDeleteShouldReturnVoid() {
-    String userId = "user_id";
-
-    Mockito.when(userRepository.existsById(userId)).thenReturn(true);
-    Mockito.when(fileRepository.findAllByUserId(userId)).thenReturn(Arrays.asList(new File(), new File()));
+    Mockito.when(userRepository.existsById(Mockito.any())).thenReturn(true);
+    Mockito.when(fileRepository.findAllByUserId(Mockito.any())).thenReturn(Arrays.asList(new File(), new File()));
     Mockito.doNothing().when(s3Utils).deleteFile(Mockito.any());
 
-    userService.delete(userId);
+    userService.delete();
 
     Mockito.verify(fileRepository, Mockito.times(2)).deleteById(Mockito.any());
-    Mockito.verify(refreshTokenService).deleteByUserId(userId);
-    Mockito.verify(userRepository).deleteById(userId);
+    Mockito.verify(refreshTokenService).deleteByUserId(Mockito.any());
+    Mockito.verify(userRepository).deleteById(Mockito.any());
   }
 
   @Test()
   public void whenDeleteShouldThrownUserNotFoundException() {
-    String userId = "id_que_nao_existe";
+    Mockito.when(userRepository.existsById(Mockito.any())).thenReturn(false);
 
-    Mockito.when(userRepository.existsById(userId)).thenReturn(false);
-
-    assertThrows(UserNotFoundException.class, () -> userService.delete(userId));
+    assertThrows(UserNotFoundException.class, () -> userService.delete());
   }
 
   @Test

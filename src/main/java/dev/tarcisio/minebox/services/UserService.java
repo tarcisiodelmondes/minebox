@@ -59,7 +59,11 @@ public class UserService {
   }
 
   @Transactional
-  public void delete(String id) {
+  public void delete() {
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    UserDetailsImpl userPrincipal = (UserDetailsImpl) authentication.getPrincipal();
+
+    String id = userPrincipal.getId();
     boolean isUserExists = userRepository.existsById(id);
 
     if (!isUserExists) {

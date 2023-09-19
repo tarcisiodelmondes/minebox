@@ -50,17 +50,17 @@ public class UserController {
     }
   }
 
-  @Operation(summary = "Rota de delete de usuario por id", description = "Recebe o id pelo path param. Deleta o usuario, seus arquivos e token de acesso")
+  @Operation(summary = "Rota de delete de usuario", description = "Recupera o id do usuario pelo contexto de autenticação. Deleta o usuario, seus arquivos e token de acesso")
   @ApiResponses({
       @ApiResponse(responseCode = "204", content = {
           @Content(schema = @Schema(implementation = Void.class), mediaType = "application/json") }),
       @ApiResponse(responseCode = "404", description = "Usuario não encontrado", content = {
           @Content(schema = @Schema(implementation = UserNotFoundException.class), mediaType = "application/json") })
   })
-  @DeleteMapping(value = "/{id}")
-  public ResponseEntity<?> deleteById(@PathVariable String id) throws UserNotFoundException {
+  @DeleteMapping(value = "/delete")
+  public ResponseEntity<?> deleteById() throws UserNotFoundException {
     try {
-      userService.delete(id);
+      userService.delete();
 
       return ResponseEntity.status(204).build();
     } catch (UserNotFoundException e) {
