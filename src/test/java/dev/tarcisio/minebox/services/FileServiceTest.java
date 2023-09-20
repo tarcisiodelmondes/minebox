@@ -23,9 +23,12 @@ import org.springframework.web.multipart.MultipartFile;
 
 import dev.tarcisio.minebox.entities.File;
 import dev.tarcisio.minebox.entities.User;
+import dev.tarcisio.minebox.exception.FileAccessNotAllowed;
 import dev.tarcisio.minebox.exception.FileEmptyException;
 import dev.tarcisio.minebox.exception.FileNotFoundException;
+import dev.tarcisio.minebox.payload.request.FileRenameRequest;
 import dev.tarcisio.minebox.payload.response.FileDownloadResponse;
+import dev.tarcisio.minebox.payload.response.FileResponse;
 import dev.tarcisio.minebox.payload.response.FileUploadResponse;
 import dev.tarcisio.minebox.repositories.FileRepository;
 import dev.tarcisio.minebox.utils.S3Utils;
@@ -109,6 +112,63 @@ public class FileServiceTest {
   @Test
   public void whenDownloadShouldReturnFileNotFoundException() throws Exception {
     assertThrows(FileNotFoundException.class, () -> fileService.download(Mockito.anyString()));
+  }
+
+  @Test
+  public void whenRenameShouldReturnFileResponse() throws Exception {
+    User user = new User("Fulano", "test@email.com", "12345678");
+    user.setId("id");
+    File file = new File("id", "file_name", 10L, "image/png", "s3_file_key", user);
+
+    // Mock contexto de autenticação
+    UserDetailsImpl userDetails = new UserDetailsImpl("id", "Fulano", "test@email.com", "12345678");
+    Authentication authentication = new UsernamePasswordAuthenticationToken(userDetails, null,
+        userDetails.getAuthorities());
+
+    SecurityContextHolder.getContext().setAuthentication(authentication);
+
+    Mockito.when(fileRepository.findById(Mockito.any())).thenReturn(Optional.of(file));
+    Mockito.when(fileRepository.save(Mockito.any())).thenReturn(file);
+
+    FileRenameRequest fileRenameRequest = new FileRenameRequest();
+    fileRenameRequest.setName("novo_nome");
+
+    FileResponse result = fileService.rename("id", fileRenameRequest);
+
+    assertEquals("novo_nome", result.getName());
+    assertEquals("id", result.getId());
+    assertEquals(10L, result.getSize());
+    assertEquals("image/png", result.getContentType());
+
+  }
+
+  @Test
+  public void whenRenameShouldReturnFileNotFoundException() throws Exception {
+    FileRenameRequest fileRenameRequest = new FileRenameRequest();
+    fileRenameRequest.setName("novo_nome");
+    assertThrows(FileNotFoundException.class, () -> fileService.rename("id", fileRenameRequest));
+  }
+
+  @Test
+  public void whenRenameShouldReturnFileAccessNotAllowed() throws Exception {
+    User user = new User("Fulano", "test@email.com", "12345678");
+    user.setId("id");
+    File file = new File("id", "file_name", 10L, "image/png", "s3_file_key", user);
+
+    // Mock contexto de autenticação
+    UserDetailsImpl userDetails = new UserDetailsImpl("id_diferente", "Fulano", "test@email.com", "12345678");
+    Authentication authentication = new UsernamePasswordAuthenticationToken(userDetails, null,
+        userDetails.getAuthorities());
+
+    SecurityContextHolder.getContext().setAuthentication(authentication);
+
+    Mockito.when(fileRepository.findById(Mockito.any())).thenReturn(Optional.of(file));
+
+    FileRenameRequest fileRenameRequest = new FileRenameRequest();
+    fileRenameRequest.setName("novo_nome");
+
+    assertThrows(FileAccessNotAllowed.class, () -> fileService.rename("id", fileRenameRequest));
+
   }
 
 }

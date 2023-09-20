@@ -2,6 +2,7 @@ package dev.tarcisio.minebox.controllers;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -21,12 +22,17 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import dev.tarcisio.minebox.exception.FileAccessNotAllowed;
 import dev.tarcisio.minebox.exception.FileEmptyException;
 import dev.tarcisio.minebox.exception.FileNotFoundException;
 import dev.tarcisio.minebox.exception.FileUploadException;
 import dev.tarcisio.minebox.exception.S3Exception;
+import dev.tarcisio.minebox.payload.request.FileRenameRequest;
 import dev.tarcisio.minebox.payload.response.FileDownloadResponse;
 import dev.tarcisio.minebox.payload.response.FileListResponse;
+import dev.tarcisio.minebox.payload.response.FileResponse;
 import dev.tarcisio.minebox.payload.response.FileUploadResponse;
 import dev.tarcisio.minebox.repositories.FileRepository;
 import dev.tarcisio.minebox.services.FileService;
@@ -36,6 +42,9 @@ import dev.tarcisio.minebox.services.FileService;
 public class FileControllerTest {
   @Autowired
   private MockMvc mockMvc;
+
+  @Autowired
+  private ObjectMapper objectMapper;
 
   @MockBean
   private FileService fileService;
@@ -155,6 +164,55 @@ public class FileControllerTest {
             get("/api/file/download/file_id").with(SecurityMockMvcRequestPostProcessors.user("test@email.com"))
                 .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isNotFound()).andExpect(content().string("Error: arquivo não encontrado!"));
+  }
+
+  @Test
+  public void testRenameShould200WithFileResponse() throws Exception {
+    FileRenameRequest fileRenameRequest = new FileRenameRequest();
+    fileRenameRequest.setName("new_name");
+
+    FileResponse fileResponse = new FileResponse("id", "new_name", 10L, "image/png");
+    Mockito.when(fileService.rename(Mockito.any(), Mockito.any(FileRenameRequest.class))).thenReturn(fileResponse);
+
+    mockMvc
+        .perform(
+            put("/api/file/rename/file_id").with(SecurityMockMvcRequestPostProcessors.user("test@email.com"))
+                .contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(fileRenameRequest)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.name").value("new_name")).andExpect(jsonPath("$.id").value("id"))
+        .andExpect(jsonPath("$.size").value(10L)).andExpect(jsonPath("$.contentType").value("image/png"));
+  }
+
+  @Test
+  public void testRenameShould404WithFileNotFoundException() throws Exception {
+    FileRenameRequest fileRenameRequest = new FileRenameRequest();
+    fileRenameRequest.setName("new_name");
+
+    Mockito.when(fileService.rename(Mockito.any(), Mockito.any(FileRenameRequest.class)))
+        .thenThrow(new FileNotFoundException("Error: arquivo não encontrado!"));
+
+    mockMvc
+        .perform(
+            put("/api/file/rename/file_id").with(SecurityMockMvcRequestPostProcessors.user("test@email.com"))
+                .contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(fileRenameRequest)))
+        .andExpect(status().isNotFound())
+        .andExpect(content().string("Error: arquivo não encontrado!"));
+  }
+
+  @Test
+  public void testRenameShould403WithFileAccessNotAllowed() throws Exception {
+    FileRenameRequest fileRenameRequest = new FileRenameRequest();
+    fileRenameRequest.setName("new_name");
+
+    Mockito.when(fileService.rename(Mockito.any(), Mockito.any(FileRenameRequest.class)))
+        .thenThrow(new FileAccessNotAllowed("Error: você não tem permisão para renomear esse arquivo!"));
+
+    mockMvc
+        .perform(
+            put("/api/file/rename/file_id").with(SecurityMockMvcRequestPostProcessors.user("test@email.com"))
+                .contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(fileRenameRequest)))
+        .andExpect(status().isForbidden())
+        .andExpect(content().string("Error: você não tem permisão para renomear esse arquivo!"));
   }
 
 }

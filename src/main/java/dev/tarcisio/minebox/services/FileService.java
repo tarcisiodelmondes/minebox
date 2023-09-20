@@ -16,12 +16,15 @@ import org.springframework.web.multipart.MultipartFile;
 
 import dev.tarcisio.minebox.entities.File;
 import dev.tarcisio.minebox.entities.User;
+import dev.tarcisio.minebox.exception.FileAccessNotAllowed;
 import dev.tarcisio.minebox.exception.FileEmptyException;
 import dev.tarcisio.minebox.exception.FileNotFoundException;
 import dev.tarcisio.minebox.exception.FileUploadException;
 import dev.tarcisio.minebox.exception.S3Exception;
+import dev.tarcisio.minebox.payload.request.FileRenameRequest;
 import dev.tarcisio.minebox.payload.response.FileDownloadResponse;
 import dev.tarcisio.minebox.payload.response.FileListResponse;
+import dev.tarcisio.minebox.payload.response.FileResponse;
 import dev.tarcisio.minebox.payload.response.FileUploadResponse;
 import dev.tarcisio.minebox.repositories.FileRepository;
 import dev.tarcisio.minebox.utils.S3Utils;
@@ -116,6 +119,28 @@ public class FileService {
     FileDownloadResponse fileDownloadResponse = new FileDownloadResponse(fileBytes, fileObject.getContentType(),
         fileObject.getSize());
     return fileDownloadResponse;
+
+  }
+
+  public FileResponse rename(String fileId, FileRenameRequest fileRenameRequest)
+      throws FileNotFoundException, FileAccessNotAllowed {
+    File file = fileRepository.findById(fileId)
+        .orElseThrow(() -> new FileNotFoundException("Error: arquivo não encontrado!"));
+
+    // Recupera o usuário logado
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    UserDetailsImpl userPrincipal = (UserDetailsImpl) authentication.getPrincipal();
+
+    if (!userPrincipal.getId().equals(file.getUser().getId())) {
+      throw new FileAccessNotAllowed("Error: você não tem permisão para renomear esse arquivo!");
+    }
+
+    file.setName(fileRenameRequest.getName());
+    File newFile = fileRepository.save(file);
+
+    FileResponse fileResponse = new FileResponse(newFile.getId(), newFile.getName(), newFile.getSize(),
+        newFile.getContentType());
+    return fileResponse;
 
   }
 

@@ -10,17 +10,23 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import dev.tarcisio.minebox.advice.ArgumentValidateMessage;
+import dev.tarcisio.minebox.exception.FileAccessNotAllowed;
 import dev.tarcisio.minebox.exception.FileEmptyException;
 import dev.tarcisio.minebox.exception.FileNotFoundException;
 import dev.tarcisio.minebox.exception.FileUploadException;
 import dev.tarcisio.minebox.exception.S3Exception;
+import dev.tarcisio.minebox.payload.request.FileRenameRequest;
 import dev.tarcisio.minebox.payload.response.FileDownloadResponse;
 import dev.tarcisio.minebox.payload.response.FileListResponse;
+import dev.tarcisio.minebox.payload.response.FileResponse;
 import dev.tarcisio.minebox.payload.response.FileUploadResponse;
 import dev.tarcisio.minebox.services.FileService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -29,6 +35,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 
 @Tag(name = "Rota file", description = "Rotas referente a arquivos")
 @RestController
@@ -106,6 +113,35 @@ public class FileController {
     } catch (Exception e) {
       return ResponseEntity.status(500).body("Error interno no servidor, tente novamente mais tarde!");
 
+    }
+  }
+
+  @Operation(summary = "Rota para renomear o arquivo do usuario", description = "É necessario estar autenticado e enviar o id do arquivo no path")
+  @ApiResponses({
+      @ApiResponse(responseCode = "200", description = "Retorna um JSON do tipo FileResponse", content = {
+          @Content(mediaType = "application/json")
+      }),
+      @ApiResponse(responseCode = "400", description = "Retorna um erro do tipo ArgumentValidateMessage, quando o valor que veio no body é invalido ou mal formatado", content = {
+          @Content(schema = @Schema(implementation = ArgumentValidateMessage.class), mediaType = "application/json")
+      }),
+      @ApiResponse(responseCode = "404", description = "Retorna um erro do tipo FileNotFoundException, quando arquivo não é encontrado", content = {
+          @Content(schema = @Schema(implementation = FileNotFoundException.class), mediaType = "application/json")
+      }),
+      @ApiResponse(responseCode = "403", description = "Retorna um erro do tipo FileAccessNotAllowed, quando o usuário tenta acessar um arquivo que não o pertence", content = {
+          @Content(schema = @Schema(implementation = FileAccessNotAllowed.class), mediaType = "application/json")
+      })
+  })
+  @PutMapping("/rename/{id}")
+  public ResponseEntity<?> rename(@PathVariable String id, @Valid @RequestBody FileRenameRequest fileRenameRequest)
+      throws FileAccessNotAllowed, FileNotFoundException {
+    try {
+      FileResponse result = fileService.rename(id, fileRenameRequest);
+
+      return ResponseEntity.status(200).body(result);
+    } catch (FileNotFoundException e) {
+      return ResponseEntity.status(404).body(e.getMessage());
+    } catch (FileAccessNotAllowed e) {
+      return ResponseEntity.status(403).body(e.getMessage());
     }
   }
 }
