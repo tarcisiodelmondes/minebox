@@ -1,6 +1,7 @@
 package dev.tarcisio.minebox.controllers;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -211,6 +212,46 @@ public class FileControllerTest {
         .perform(
             put("/api/file/rename/file_id").with(SecurityMockMvcRequestPostProcessors.user("test@email.com"))
                 .contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(fileRenameRequest)))
+        .andExpect(status().isForbidden())
+        .andExpect(content().string("Error: você não tem permisão para renomear esse arquivo!"));
+  }
+
+  @Test
+  public void testDeleteShould200WithPlainText() throws Exception {
+    Mockito.doNothing().when(fileService).delete(Mockito.any());
+
+    mockMvc
+        .perform(
+            delete("/api/file/delete/file_id").with(SecurityMockMvcRequestPostProcessors.user("test@email.com"))
+                .contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isOk())
+        .andExpect(content().string("Arquivo deletado com sucesso!"));
+
+  }
+
+  @Test
+  public void testDeleteShould404WithFileNotFoundException() throws Exception {
+    Mockito.doThrow(new FileNotFoundException("Error: arquivo não encontrado!")).when(fileService)
+        .delete(Mockito.any());
+
+    mockMvc
+        .perform(
+            delete("/api/file/delete/file_id").with(SecurityMockMvcRequestPostProcessors.user("test@email.com"))
+                .contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isNotFound())
+        .andExpect(content().string("Error: arquivo não encontrado!"));
+  }
+
+  @Test
+  public void testDeleteShould403WithFileAccessNotAllowed() throws Exception {
+    Mockito.doThrow(new FileAccessNotAllowed("Error: você não tem permisão para renomear esse arquivo!"))
+        .when(fileService)
+        .delete(Mockito.any());
+
+    mockMvc
+        .perform(
+            delete("/api/file/delete/file_id").with(SecurityMockMvcRequestPostProcessors.user("test@email.com"))
+                .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isForbidden())
         .andExpect(content().string("Error: você não tem permisão para renomear esse arquivo!"));
   }

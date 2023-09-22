@@ -144,4 +144,22 @@ public class FileService {
 
   }
 
+  public void delete(String fileId)
+      throws FileNotFoundException, FileAccessNotAllowed {
+    File file = fileRepository.findById(fileId)
+        .orElseThrow(() -> new FileNotFoundException("Error: arquivo não encontrado!"));
+
+    // Recupera o usuário logado
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    UserDetailsImpl userPrincipal = (UserDetailsImpl) authentication.getPrincipal();
+
+    if (!userPrincipal.getId().equals(file.getUser().getId())) {
+      throw new FileAccessNotAllowed("Error: você não tem permisão para renomear esse arquivo!");
+    }
+
+    s3Utils.deleteFile(file.getS3FileKey());
+    fileRepository.deleteById(file.getId());
+
+  }
+
 }

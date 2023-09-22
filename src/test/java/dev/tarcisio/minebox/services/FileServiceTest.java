@@ -171,4 +171,61 @@ public class FileServiceTest {
 
   }
 
+  @Test
+  public void whenDeleteShouldReturnVoid() throws Exception {
+    User user = new User("Fulano", "test@email.com", "12345678");
+    user.setId("id");
+    File file = new File("id", "file_name", 10L, "image/png", "s3_file_key", user);
+
+    // Mock contexto de autenticação
+    UserDetailsImpl userDetails = new UserDetailsImpl("id", "Fulano", "test@email.com", "12345678");
+    Authentication authentication = new UsernamePasswordAuthenticationToken(userDetails, null,
+        userDetails.getAuthorities());
+
+    SecurityContextHolder.getContext().setAuthentication(authentication);
+
+    Mockito.when(fileRepository.findById(Mockito.any())).thenReturn(Optional.of(file));
+    Mockito.doNothing().when(fileRepository).deleteById(Mockito.any());
+    Mockito.doNothing().when(s3Utils).deleteFile(Mockito.any());
+
+    fileService.delete("id");
+
+    Mockito.verify(fileRepository, Mockito.times(1)).findById("id");
+    Mockito.verify(fileRepository, Mockito.times(1)).deleteById("id");
+    Mockito.verify(s3Utils, Mockito.times(1)).deleteFile("s3_file_key");
+
+  }
+
+  @Test
+  public void whenDeleteShouldReturnFileNotFoundException() throws Exception {
+    assertThrows(FileNotFoundException.class, () -> fileService.delete("id"));
+
+    Mockito.verify(fileRepository, Mockito.times(1)).findById("id");
+    Mockito.verify(fileRepository, Mockito.times(0)).deleteById("id");
+    Mockito.verify(s3Utils, Mockito.times(0)).deleteFile("s3_file_key");
+  }
+
+  @Test
+  public void whenDeleteShouldReturnFileAccessNotAllowed() throws Exception {
+    User user = new User("Fulano", "test@email.com", "12345678");
+    user.setId("id");
+    File file = new File("id", "file_name", 10L, "image/png", "s3_file_key", user);
+
+    // Mock contexto de autenticação
+    UserDetailsImpl userDetails = new UserDetailsImpl("id_diferente", "Fulano", "test@email.com", "12345678");
+    Authentication authentication = new UsernamePasswordAuthenticationToken(userDetails, null,
+        userDetails.getAuthorities());
+
+    SecurityContextHolder.getContext().setAuthentication(authentication);
+
+    Mockito.when(fileRepository.findById(Mockito.any())).thenReturn(Optional.of(file));
+
+    assertThrows(FileAccessNotAllowed.class, () -> fileService.delete("id"));
+
+    Mockito.verify(fileRepository, Mockito.times(1)).findById("id");
+    Mockito.verify(fileRepository, Mockito.times(0)).deleteById("id");
+    Mockito.verify(s3Utils, Mockito.times(0)).deleteFile("s3_file_key");
+
+  }
+
 }

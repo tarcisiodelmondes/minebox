@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -138,6 +139,32 @@ public class FileController {
       FileResponse result = fileService.rename(id, fileRenameRequest);
 
       return ResponseEntity.status(200).body(result);
+    } catch (FileNotFoundException e) {
+      return ResponseEntity.status(404).body(e.getMessage());
+    } catch (FileAccessNotAllowed e) {
+      return ResponseEntity.status(403).body(e.getMessage());
+    }
+  }
+
+  @Operation(summary = "Rota para deletar o arquivo do usuario", description = "É necessario estar autenticado e enviar o id do arquivo no path")
+  @ApiResponses({
+      @ApiResponse(responseCode = "200", description = "Retorna um plain text", content = {
+          @Content(mediaType = "application/json")
+      }),
+      @ApiResponse(responseCode = "404", description = "Retorna um erro do tipo FileNotFoundException, quando arquivo não é encontrado", content = {
+          @Content(schema = @Schema(implementation = FileNotFoundException.class), mediaType = "application/json")
+      }),
+      @ApiResponse(responseCode = "403", description = "Retorna um erro do tipo FileAccessNotAllowed, quando o usuário tenta acessar um arquivo que não o pertence", content = {
+          @Content(schema = @Schema(implementation = FileAccessNotAllowed.class), mediaType = "application/json")
+      })
+  })
+  @DeleteMapping("/delete/{id}")
+  public ResponseEntity<?> rename(@PathVariable String id)
+      throws FileAccessNotAllowed, FileNotFoundException {
+    try {
+      fileService.delete(id);
+
+      return ResponseEntity.status(200).body("Arquivo deletado com sucesso!");
     } catch (FileNotFoundException e) {
       return ResponseEntity.status(404).body(e.getMessage());
     } catch (FileAccessNotAllowed e) {
