@@ -6,8 +6,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class MineboxApplication {
 
-    public static void main(String[] args) {
-        SpringApplication.run(MineboxApplication.class, args);
-    }
+  public static void main(String[] args) {
+    SpringApplication.run(MineboxApplication.class, args);
+  }
 
 }
