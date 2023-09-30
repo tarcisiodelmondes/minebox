@@ -14,31 +14,24 @@ import io.swagger.v3.oas.models.servers.Server;
 
 @Configuration
 public class OpenApiConfig {
-    @Value("${swagger.dev-url}")
-    private String devUrl;
+  @Value("${swagger.dev-url}")
+  private String devUrl;
 
-    @Value("${swagger.prod-url}")
-    private String prodUrl;
-    
-    @Bean
-    public OpenAPI myOpenApi() {
-       Server devServer = new Server();
-       devServer.setUrl(devUrl);
-       devServer.setDescription("Server URL in Development enviroment");
+  @Bean
+  public OpenAPI myOpenApi() {
+    Server devServer = new Server();
+    devServer.setUrl(devUrl);
+    devServer.setDescription("Server URL in Development enviroment");
 
-       Server prodServer = new Server();
-       prodServer.setUrl(prodUrl);
-       prodServer.setDescription("Server URL in Production enviroment");
+    Contact contact = new Contact();
+    contact.setEmail("tarcisiodelmondes@gmail.com");
+    contact.setName("Tarcisio");
+    contact.setUrl("https://minebox.tarcisiodelmondes.dev");
 
-       Contact contact = new Contact();
-       contact.setEmail("tarcisiodelmondes@gmail.com");
-       contact.setName("Tarcisio");
-       contact.setUrl("https://minebox.tarcisiodelmondes.dev");
+    License mitLicense = new License().name("MIT License").url("https://choosealicense.com/licenses/mit/");
 
-       License mitLicense = new License().name("MIT License").url("https://choosealicense.com/licenses/mit/");
+    Info info = new Info().title("Minebox API").version("1.0").contact(contact).license(mitLicense);
 
-       Info info = new Info().title("Minebox API").version("1.0").contact(contact).license(mitLicense);
-
-       return new OpenAPI().info(info).servers(List.of(devServer, prodServer));
+    return new OpenAPI().info(info).servers(List.of(devServer));
   }
 }

@@ -64,7 +64,9 @@ public class AuthController {
   }
 
   @Operation(summary = "Rota de criação de usuario", description = "Recebe name, email e password pelo body. A resposta é um texto puro")
-  @ApiResponses({ @ApiResponse(responseCode = "201", content = { @Content(mediaType = "text/plain") }),
+  @ApiResponses({
+      @ApiResponse(responseCode = "201", content = {
+          @Content(schema = @Schema(implementation = MessageResponse.class), mediaType = "application/json") }),
       @ApiResponse(responseCode = "400", description = "Email já esta em uso \t\n name, email ou password mal formatado/nulo (ArgumentValidateMessage)", content = {
           @Content(schema = @Schema(implementation = MessageResponse.class), mediaType = "application/json") }) })
   @PostMapping("/signup")
