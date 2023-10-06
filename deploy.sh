@@ -6,14 +6,14 @@ ssh -p ${SERVER_PORT} ${SERVER_USER}@${SERVER_HOST} -i key.txt -t -t -o StrictHo
 docker pull tarcisiodelmondes/minebox:latest
 
 CONTAINER_NAME=minebox
-if [ "$(docker ps -qa -f name=$CONTAINER_NAME)" ]; then
-	if [ "$(docker ps -q -f name=$CONTAINER_NAME)" ]; then
-		echo "Container is running -> stopping it..."
-		docker stop $CONTAINER_NAME
-	fi
+if [ -n "$(docker ps -qa -f name=$CONTAINER_NAME)" ]; then
+    if [ -n "$(docker ps -q -f name=$CONTAINER_NAME)" ]; then
+        echo "Container is running -> stopping it..."
+        docker stop $CONTAINER_NAME;
+    fi
 fi
 
-docker run --network=host -d --rm -p 8080:8080 \
+docker run -d --rm --network=host \
   -e AWS_REGION \
   -e AWS_ACCESS_KEY_ID \
   -e AWS_SECRET_ACCESS_KEY \
