@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import dev.tarcisio.minebox.entities.User;
 import dev.tarcisio.minebox.exception.EmailAlreadyExistsException;
+import dev.tarcisio.minebox.exception.UnauthorizedAccessException;
 import dev.tarcisio.minebox.exception.UserNotFoundException;
 import dev.tarcisio.minebox.payload.request.UpdateUserRequest;
 import dev.tarcisio.minebox.payload.response.UserResponse;
@@ -72,22 +73,36 @@ public class UserControllerTest {
 
   @Test
   public void testDeleteByIdShouldReturn204WithoutBody() throws Exception {
-    Mockito.doNothing().when(userService).delete();
+    Mockito.doNothing().when(userService).delete(Mockito.anyString());
 
     mockMvc
-        .perform(delete("/api/user/delete").with(SecurityMockMvcRequestPostProcessors.user("test@email.com"))
+        .perform(delete("/api/user/delete/user_id").with(SecurityMockMvcRequestPostProcessors.user("test@email.com"))
             .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isNoContent()).andExpect(content().string(""));
   }
 
   @Test
   public void testDeleteByIdShouldReturn404() throws Exception {
-    Mockito.doThrow(new UserNotFoundException("Error: o usuario não existe!")).when(userService).delete();
+    Mockito.doThrow(new UserNotFoundException("Error: o usuario não existe!")).when(userService)
+        .delete(Mockito.anyString());
 
     mockMvc
-        .perform(delete("/api/user/delete").with(SecurityMockMvcRequestPostProcessors.user("test@email.com"))
+        .perform(delete("/api/user/delete/user_id").with(SecurityMockMvcRequestPostProcessors.user("test@email.com"))
             .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isNotFound()).andExpect(content().string("Error: o usuario não existe!"));
+  }
+
+  @Test
+  public void testDeleteByIdShouldReturn403() throws Exception {
+    Mockito.doThrow(new UnauthorizedAccessException("Error: Você não tem permisão para deletar este usuário!"))
+        .when(userService)
+        .delete(Mockito.anyString());
+
+    mockMvc
+        .perform(delete("/api/user/delete/user_id").with(SecurityMockMvcRequestPostProcessors.user("test@email.com"))
+            .contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isForbidden())
+        .andExpect(content().string("Error: Você não tem permisão para deletar este usuário!"));
   }
 
   @Test
@@ -99,18 +114,19 @@ public class UserControllerTest {
     User user = new User("Fulano", userRequest.getEmail(), "12345678");
     UserResponse userResponse = new UserResponse(user);
 
-    Mockito.when(userService.update(Mockito.any(UpdateUserRequest.class))).thenReturn(userResponse);
+    Mockito.when(userService.update(Mockito.any(), Mockito.any(UpdateUserRequest.class))).thenReturn(userResponse);
 
     String requestBody = objectMapper.writeValueAsString(userRequest);
 
     mockMvc
-        .perform(put("/api/user/update").with(SecurityMockMvcRequestPostProcessors.user("test@email.com"))
-            .contentType(MediaType.APPLICATION_JSON).content(requestBody))
+        .perform(
+            put("/api/user/update/{id}", "user_id").with(SecurityMockMvcRequestPostProcessors.user("test@email.com"))
+                .contentType(MediaType.APPLICATION_JSON).content(requestBody))
         .andExpect(status().isOk()).andExpect(jsonPath("$.id").value(user.getId()))
         .andExpect(jsonPath("$.name").value("Fulano"))
         .andExpect(jsonPath("$.email").value("novo@email.com"));
 
-    Mockito.verify(userService).update(updateUserRequestCaptor.capture());
+    Mockito.verify(userService).update(Mockito.any(), updateUserRequestCaptor.capture());
 
     // Verifica se o valores do body veio corretamente
     UpdateUserRequest capturedUpdateUserRequest = updateUserRequestCaptor.getValue();
@@ -124,15 +140,36 @@ public class UserControllerTest {
     userRequest.setName("Fulano");
     userRequest.setEmail("email_ja_existe@email.com");
 
-    Mockito.when(userService.update(Mockito.any(UpdateUserRequest.class))).thenThrow(new EmailAlreadyExistsException());
+    Mockito.when(userService.update(Mockito.any(), Mockito.any(UpdateUserRequest.class)))
+        .thenThrow(new EmailAlreadyExistsException());
 
     String requestBody = objectMapper.writeValueAsString(userRequest);
 
     mockMvc
-        .perform(put("/api/user/update").with(SecurityMockMvcRequestPostProcessors.user("test@email.com"))
-            .contentType(MediaType.APPLICATION_JSON).content(requestBody))
+        .perform(
+            put("/api/user/update/{id}", "user_id").with(SecurityMockMvcRequestPostProcessors.user("test@email.com"))
+                .contentType(MediaType.APPLICATION_JSON).content(requestBody))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.message").value("Error: este email já esta sendo usado!"));
+  }
+
+  @Test
+  public void testUpdateByIdShouldReturn403WithUnauthorizedAccessException() throws Exception {
+    UpdateUserRequest userRequest = new UpdateUserRequest();
+    userRequest.setName("Fulano");
+    userRequest.setEmail("email_ja_existe@email.com");
+
+    Mockito.when(userService.update(Mockito.any(), Mockito.any(UpdateUserRequest.class)))
+        .thenThrow(new UnauthorizedAccessException("Error: você não tem permisão para atualizar este usuário!"));
+
+    String requestBody = objectMapper.writeValueAsString(userRequest);
+
+    mockMvc
+        .perform(
+            put("/api/user/update/{id}", "user_id").with(SecurityMockMvcRequestPostProcessors.user("test@email.com"))
+                .contentType(MediaType.APPLICATION_JSON).content(requestBody))
+        .andExpect(status().isForbidden())
+        .andExpect(jsonPath("$").value("Error: você não tem permisão para atualizar este usuário!"));
   }
 
 }

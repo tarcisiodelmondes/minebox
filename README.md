@@ -20,8 +20,8 @@
 - [x] Rota para atualizar token JTW utilizando o REFRESH TOKEN
 - [x] Documentação com SWAGGER
 - [x] Testar controllers e services com JUnit e Mockito
-- [ ] Adicionar monitoramento com Sentry
-- [ ] Deploy na AWS usando CI/CD
+- [x] Adicionar monitoramento com Sentry
+- [x] Deploy na AWS usando CI/CD
 
 ### Regras de negócio
 - [x] Não pode salvar arquivos maiores do que 50MB
@@ -29,6 +29,7 @@
 - [x] O usuário precisa estar logado para atualizar suas informações ou apagar sua conta
 - [x] Apagar usuário junto com seus outros dados que estão ligados a ele
 - [x] Só o usuário pode visualizar seus arquivos, por 2 horas (É o tempo da url pre assinada que é gerada para o usuário ter acesso ao arquivo expirar).
+- [x] Um usuário não pode baixar um arquivo que não o pertence
 
 
 ## 💻 Pré-requisitos

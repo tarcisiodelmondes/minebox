@@ -93,9 +93,15 @@ public class FileServiceTest {
   @Test
   public void whenDownloadShouldReturnFileDownloadResponse() throws Exception {
     User user = new User("Fulano", "test@email.com", "12345678");
+    user.setId("user_id");
     File file = new File("id", "file_name", 10L, "image/png", "s3_file_key", user);
 
     Mockito.doReturn(Optional.of(file)).when(fileRepository).findById("id");
+    UserDetailsImpl userDetails = new UserDetailsImpl("user_id", "Fulano", "fulano@email.com", "12345678");
+    Authentication authentication = new UsernamePasswordAuthenticationToken(userDetails, null,
+        userDetails.getAuthorities());
+
+    SecurityContextHolder.getContext().setAuthentication(authentication);
 
     byte[] fileBytes = new byte[1234];
     Mockito.when(s3Utils.getFileBytes("s3_file_key")).thenReturn(fileBytes);
@@ -106,6 +112,23 @@ public class FileServiceTest {
     assertEquals(fileBytes, result.getFilebytes());
     assertEquals(file.getSize(), result.getSize());
     assertEquals(file.getContentType(), result.getContentType());
+
+  }
+
+  @Test
+  public void whenDownloadShouldReturnFileAccessNotAllowed() throws Exception {
+    User user = new User("Fulano", "test@email.com", "12345678");
+    user.setId("user_id");
+    File file = new File("id", "file_name", 10L, "image/png", "s3_file_key", user);
+
+    Mockito.doReturn(Optional.of(file)).when(fileRepository).findById("id");
+    UserDetailsImpl userDetails = new UserDetailsImpl("id_diferente", "Fulano", "fulano@email.com", "12345678");
+    Authentication authentication = new UsernamePasswordAuthenticationToken(userDetails, null,
+        userDetails.getAuthorities());
+
+    SecurityContextHolder.getContext().setAuthentication(authentication);
+
+    assertThrows(FileAccessNotAllowed.class, () -> fileService.download(file.getId()));
 
   }
 

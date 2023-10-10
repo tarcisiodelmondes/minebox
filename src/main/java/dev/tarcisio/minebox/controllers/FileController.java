@@ -37,6 +37,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 
 @Tag(name = "Rota file", description = "Rotas referente a arquivos")
 @RestController
@@ -95,10 +96,13 @@ public class FileController {
       }),
       @ApiResponse(responseCode = "404", description = "Retorna um erro do tipo FileNotFoundException, quando arquivo não é encontrado", content = {
           @Content(schema = @Schema(implementation = FileNotFoundException.class), mediaType = "application/json")
+      }),
+      @ApiResponse(responseCode = "403", description = "Retorna um erro do tipo FileAccessNotAllowed, quando o usuário tenta acessar um arquivo que não o pertence", content = {
+          @Content(schema = @Schema(implementation = FileAccessNotAllowed.class), mediaType = "application/json")
       })
   })
   @GetMapping("/download/{id}")
-  public ResponseEntity<?> upload(@PathVariable String id) {
+  public ResponseEntity<?> download(@PathVariable @NotBlank String id) {
     try {
       FileDownloadResponse result = fileService.download(id);
 
@@ -111,9 +115,8 @@ public class FileController {
       return ResponseEntity.status(404).body(e.getMessage());
     } catch (S3Exception e) {
       return ResponseEntity.status(400).body(e.getMessage());
-    } catch (Exception e) {
-      return ResponseEntity.status(500).body("Error interno no servidor, tente novamente mais tarde!");
-
+    } catch (FileAccessNotAllowed e) {
+      return ResponseEntity.status(403).body(e.getMessage());
     }
   }
 
@@ -133,7 +136,8 @@ public class FileController {
       })
   })
   @PutMapping("/rename/{id}")
-  public ResponseEntity<?> rename(@PathVariable String id, @Valid @RequestBody FileRenameRequest fileRenameRequest)
+  public ResponseEntity<?> rename(@PathVariable @NotBlank String id,
+      @Valid @RequestBody FileRenameRequest fileRenameRequest)
       throws FileAccessNotAllowed, FileNotFoundException {
     try {
       FileResponse result = fileService.rename(id, fileRenameRequest);
@@ -159,7 +163,7 @@ public class FileController {
       })
   })
   @DeleteMapping("/delete/{id}")
-  public ResponseEntity<?> rename(@PathVariable String id)
+  public ResponseEntity<?> rename(@PathVariable @NotBlank String id)
       throws FileAccessNotAllowed, FileNotFoundException {
     try {
       fileService.delete(id);

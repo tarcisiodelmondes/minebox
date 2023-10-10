@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import dev.tarcisio.minebox.entities.File;
 import dev.tarcisio.minebox.entities.User;
 import dev.tarcisio.minebox.exception.EmailAlreadyExistsException;
+import dev.tarcisio.minebox.exception.UnauthorizedAccessException;
 import dev.tarcisio.minebox.exception.UserNotFoundException;
 import dev.tarcisio.minebox.payload.request.SignupRequest;
 import dev.tarcisio.minebox.payload.request.UpdateUserRequest;
@@ -127,7 +128,15 @@ public class UserServiceTest {
     Mockito.when(fileRepository.findAllByUserId(Mockito.any())).thenReturn(Arrays.asList(new File(), new File()));
     Mockito.doNothing().when(s3Utils).deleteFile(Mockito.any());
 
-    userService.delete();
+    String user_id = "user_id";
+
+    UserDetailsImpl userDetails = new UserDetailsImpl("user_id", "Fulano", "fulano@email.com", "12345678");
+    Authentication authentication = new UsernamePasswordAuthenticationToken(userDetails, null,
+        userDetails.getAuthorities());
+
+    SecurityContextHolder.getContext().setAuthentication(authentication);
+
+    userService.delete(user_id);
 
     Mockito.verify(fileRepository, Mockito.times(2)).deleteById(Mockito.any());
     Mockito.verify(refreshTokenService).deleteByUserId(Mockito.any());
@@ -138,13 +147,27 @@ public class UserServiceTest {
   public void whenDeleteShouldThrownUserNotFoundException() {
     Mockito.when(userRepository.existsById(Mockito.any())).thenReturn(false);
 
-    assertThrows(UserNotFoundException.class, () -> userService.delete());
+    assertThrows(UserNotFoundException.class, () -> userService.delete("user_id"));
+  }
+
+  @Test()
+  public void whenDeleteShouldThrownUnauthorizedAccessExceptionException() {
+    Mockito.when(userRepository.existsById(Mockito.any())).thenReturn(true);
+
+    UserDetailsImpl userDetails = new UserDetailsImpl("user_id", "Fulano", "fulano@email.com", "12345678");
+    Authentication authentication = new UsernamePasswordAuthenticationToken(userDetails, null,
+        userDetails.getAuthorities());
+
+    SecurityContextHolder.getContext().setAuthentication(authentication);
+
+    assertThrows(UnauthorizedAccessException.class, () -> userService.delete("id_diferente"));
   }
 
   @Test
   public void whenUpdateShouldReturnUserResponse() {
     // Testa o update com um nome e email novo
     User user = new User("Fulano", "fulano@email.com", "12345678");
+    user.setId("id");
 
     Mockito.when(userRepository.findById(Mockito.any())).thenReturn(Optional.of(user));
 
@@ -155,7 +178,7 @@ public class UserServiceTest {
     Mockito.when(userRepository.existsByEmail(Mockito.any())).thenReturn(false);
     Mockito.when(userRepository.save(Mockito.any(User.class))).thenReturn(user);
 
-    UserResponse result = userService.update(updateUserRequest);
+    UserResponse result = userService.update("id", updateUserRequest);
 
     assertEquals("Novo Fulano", result.getName());
     assertEquals("novo@email.com", result.getEmail());
@@ -164,7 +187,7 @@ public class UserServiceTest {
     UpdateUserRequest updateUserRequest2 = new UpdateUserRequest();
     updateUserRequest2.setName("Novo Fulano 2");
 
-    UserResponse result2 = userService.update(updateUserRequest2);
+    UserResponse result2 = userService.update("id", updateUserRequest2);
     assertEquals("Novo Fulano 2", result2.getName());
     assertEquals("novo@email.com", result2.getEmail());
 
@@ -172,14 +195,14 @@ public class UserServiceTest {
     UpdateUserRequest updateUserRequest3 = new UpdateUserRequest();
     updateUserRequest3.setEmail("novo3@email.com");
 
-    UserResponse result3 = userService.update(updateUserRequest3);
+    UserResponse result3 = userService.update("id", updateUserRequest3);
     assertEquals("Novo Fulano 2", result3.getName());
     assertEquals("novo3@email.com", result3.getEmail());
 
     // Testa o update com nome e email nulo
     UpdateUserRequest updateUserRequest4 = new UpdateUserRequest();
 
-    UserResponse result4 = userService.update(updateUserRequest4);
+    UserResponse result4 = userService.update("id", updateUserRequest4);
     assertEquals("Novo Fulano 2", result4.getName());
     assertEquals("novo3@email.com", result3.getEmail());
 
@@ -193,7 +216,20 @@ public class UserServiceTest {
     updateUserRequest.setName("Novo Fulano");
     updateUserRequest.setEmail("novo@email.com");
 
-    assertThrows(UserNotFoundException.class, () -> userService.update(updateUserRequest));
+    assertThrows(UserNotFoundException.class, () -> userService.update("id", updateUserRequest));
+  }
+
+  @Test
+  public void whenUpdateShouldThrowUnauthorizedAccessException() {
+    User user = new User("Fulano", "fulano@email.com", "12345678");
+    user.setId("id");
+    Mockito.when(userRepository.findById(Mockito.any())).thenReturn(Optional.of(user));
+
+    UpdateUserRequest updateUserRequest = new UpdateUserRequest();
+    updateUserRequest.setName("Novo Fulano");
+    updateUserRequest.setEmail("novo@email.com");
+
+    assertThrows(UnauthorizedAccessException.class, () -> userService.update("id_diferente", updateUserRequest));
   }
 
   @Test
@@ -208,7 +244,7 @@ public class UserServiceTest {
     updateUserRequest.setEmail("novo@email.com");
 
     assertThrows(EmailAlreadyExistsException.class,
-        () -> userService.update(updateUserRequest));
+        () -> userService.update("id", updateUserRequest));
 
   }
 }

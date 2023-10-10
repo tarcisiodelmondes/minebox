@@ -145,6 +145,19 @@ public class FileControllerTest {
   }
 
   @Test
+  public void testDownloadShould400WithFileAccessNotAllowed() throws Exception {
+
+    Mockito.when(fileService.download("file_id"))
+        .thenThrow(new FileAccessNotAllowed("Error: você não tem permisão para baixar esse arquivo!"));
+    mockMvc
+        .perform(
+            get("/api/file/download/file_id").with(SecurityMockMvcRequestPostProcessors.user("test@email.com"))
+                .contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isForbidden())
+        .andExpect(content().string("Error: você não tem permisão para baixar esse arquivo!"));
+  }
+
+  @Test
   public void testDownloadShould400WithS3ExceptionMessage() throws Exception {
 
     Mockito.when(fileService.download("file_id")).thenThrow(new S3Exception("Error: falha ao baixar arquivo!"));

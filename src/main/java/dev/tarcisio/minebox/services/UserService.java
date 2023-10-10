@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import dev.tarcisio.minebox.entities.File;
 import dev.tarcisio.minebox.entities.User;
 import dev.tarcisio.minebox.exception.EmailAlreadyExistsException;
+import dev.tarcisio.minebox.exception.UnauthorizedAccessException;
 import dev.tarcisio.minebox.exception.UserNotFoundException;
 import dev.tarcisio.minebox.payload.request.SignupRequest;
 import dev.tarcisio.minebox.payload.request.UpdateUserRequest;
@@ -59,15 +60,20 @@ public class UserService {
   }
 
   @Transactional
-  public void delete() {
+  public void delete(String id) {
+    // Recupera usuário
     Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
     UserDetailsImpl userPrincipal = (UserDetailsImpl) authentication.getPrincipal();
 
-    String id = userPrincipal.getId();
     boolean isUserExists = userRepository.existsById(id);
-
     if (!isUserExists) {
       throw new UserNotFoundException("Error: o usuario não existe!");
+    }
+
+    // Lança um erro quando o id enviado pelo usuário é diferente do usuário logado
+    // evita que um usuario autenticado delete a conta de outro usuário
+    if (!userPrincipal.getId().equals(id)) {
+      throw new UnauthorizedAccessException("Error: Você não tem permisão para deletar este usuário");
     }
 
     List<File> files = fileRepository.findAllByUserId(id);
@@ -83,13 +89,17 @@ public class UserService {
   }
 
   @Transactional
-  public UserResponse update(UpdateUserRequest updateUserRequest) {
+  public UserResponse update(String id, UpdateUserRequest updateUserRequest) {
     // Pegar o id do usuario logogado
     Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
     UserDetailsImpl principal = (UserDetailsImpl) authentication.getPrincipal();
 
-    User user = userRepository.findById(principal.getId())
+    User user = userRepository.findById(id)
         .orElseThrow(() -> new UserNotFoundException("Error: o usuário não existe!"));
+
+    if (!principal.getId().equals(id)) {
+      throw new UnauthorizedAccessException("Error: Você não tem permisão para atualizar este usuário");
+    }
 
     String name = updateUserRequest.getName();
     String email = updateUserRequest.getEmail();

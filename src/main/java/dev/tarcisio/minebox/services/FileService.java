@@ -114,6 +114,13 @@ public class FileService {
 
     File fileObject = file.get();
 
+     // Recupera o usuário logado
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    UserDetailsImpl userPrincipal = (UserDetailsImpl) authentication.getPrincipal();
+    if (!userPrincipal.getId().equals(fileObject.getUser().getId())) {
+      throw new FileAccessNotAllowed("Error: você não tem permisão para baixar esse arquivo!");
+    }
+
     byte[] fileBytes = s3Utils.getFileBytes(fileObject.getS3FileKey());
 
     FileDownloadResponse fileDownloadResponse = new FileDownloadResponse(fileBytes, fileObject.getContentType(),
