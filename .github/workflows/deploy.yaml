@@ -4,12 +4,12 @@ on:
     branches: [main]
     paths:
       - "src/**"
-      - ".github/workflows/build.yaml"
+      - ".github/workflows/deploy.yaml"
   push:
     branches: [main]
     paths:
       - "src/**"
-      - ".github/workflows/build.yaml"
+      - ".github/workflows/deploy.yaml"
 
 jobs:
   project-build:
@@ -96,4 +96,6 @@ jobs:
           SERVER_HOST: ${{ secrets.SERVER_HOST }}
           SERVER_PORT: ${{ secrets.SERVER_PORT }}
           SERVER_USER: ${{ secrets.SERVER_USER }}
-        run: set -e ./deploy.sh
+        run: |
+          set -e
+          ./deploy.sh
